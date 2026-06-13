@@ -12,6 +12,7 @@
 
 #include "ROL_Ptr.hpp"
 #include "ROL_Sketch.hpp"
+#include "ROL_TuckerSketch.hpp"
 #include "ROL_Objective.hpp"
 #include "ROL_DynamicObjective.hpp"
 #include "ROL_DynamicConstraint.hpp"
@@ -97,6 +98,16 @@ private:
   const bool                         print_;
   const int                          freq_;
 
+  // Helper to create the appropriate sketch backend.
+  Ptr<Sketch<Real>> makeSketch(const std::string& type, const Vector<Real>& x,
+                               int ncol, int rank, Real orthTol, int orthIt,
+                               bool trunc, unsigned dseed, unsigned rseed) const {
+    if (type == "Tucker") {
+      return makePtr<TuckerSketch<Real>>(x, ncol, rank, orthTol, orthIt, trunc, dseed, rseed);
+    }
+    return makePtr<Sketch<Real>>(x, ncol, rank, orthTol, orthIt, trunc, dseed, rseed);
+  }
+
   PartitionedVector<Real>& partition ( Vector<Real>& x ) const {
     return static_cast<PartitionedVector<Real>&>(x);
   }
@@ -169,28 +180,29 @@ public:
       Real orthTol   = pl.get("Orthogonality Tolerance", 1e2*ROL_EPSILON<Real>());
       int  orthIt    = pl.get("Reorthogonalization Iterations", 5);
       bool trunc     = pl.get("Truncate Approximation", false);
+      std::string sketchType = pl.get("Sketch Type", std::string("Random"));
       if (syncHessRank_) {
         rankAdjoint_   = rankState_;
         rankStateSens_ = rankState_;
       }
       unsigned dseed = pl.get("State Domain Seed",0);
       unsigned rseed = pl.get("State Range Seed",0);
-      stateSketch_ = makePtr<Sketch<Real>>(*u0_,static_cast<int>(Nt_)-1,
-        rankState_,orthTol,orthIt,trunc,dseed,rseed);
-      stateSketchCache_ = makePtr<Sketch<Real>>(*u0_,static_cast<int>(Nt_)-1,
-        rankState_,orthTol,orthIt,trunc,dseed,rseed);
+      stateSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
+                                rankState_, orthTol, orthIt, trunc, dseed, rseed);
+      stateSketchCache_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
+                                     rankState_, orthTol, orthIt, trunc, dseed, rseed);
       uhist_.push_back(u0_->clone());
       uhist_.push_back(u0_->clone());
       lhist_.push_back(cvec->dual().clone());
       dseed = pl.get("Adjoint Domain Seed",0);
       rseed = pl.get("Adjoint Range Seed",0);
-      adjointSketch_ = makePtr<Sketch<Real>>(*u0_,static_cast<int>(Nt_)-1,rankAdjoint_,
-        orthTol,orthIt,trunc,dseed,rseed);
+      adjointSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
+                                  rankAdjoint_, orthTol, orthIt, trunc, dseed, rseed);
       if (useHessian_) {
         dseed = pl.get("State Sensitivity Domain Seed",0);
         rseed = pl.get("State Sensitivity Range Seed",0);
-        stateSensSketch_ = makePtr<Sketch<Real>>(*u0_,static_cast<int>(Nt_)-1,
-          rankStateSens_,orthTol,orthIt,trunc,dseed,rseed);
+        stateSensSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
+                                      rankStateSens_, orthTol, orthIt, trunc, dseed, rseed);
         whist_.push_back(u0_->clone());
         whist_.push_back(u0_->clone());
         phist_.push_back(cvec->dual().clone());
