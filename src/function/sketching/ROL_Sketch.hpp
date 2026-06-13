@@ -240,7 +240,7 @@ public:
     out_ = out;
   }
 
-  void reset(bool randomize = true) {
+  virtual void reset(bool randomize = true) {
     const Real zero(0);
     X_.putScalar(zero); Z_.putScalar(zero); C_.putScalar(zero);
     for (int i = 0; i < k_; ++i) Y_[i]->zero();
@@ -257,7 +257,7 @@ public:
     }
   }
 
-  void setRank(int rank) {
+  virtual void setRank(int rank) {
     rank_ = std::min(rank, maxRank_);
     // Compute reduced dimensions
     int sold = s_, kold = k_;
@@ -285,11 +285,11 @@ public:
     }
   }
 
-  void update(void) {
+  virtual void update(void) {
     reset(true);
   }
 
-  int advance(Real nu, const Vector<Real> &h, int col, Real eta = 1.0) {
+  virtual int advance(Real nu, const Vector<Real> &h, int col, Real eta = 1.0) {
     // Check to see if col is less than ncol_
     if ( col >= ncol_ || col < 0 ) return 1; // Input column index out of range!
     if (!flagP_ && !flagQ_ && !flagC_) {
@@ -325,7 +325,7 @@ public:
     return 0;
   }
 
-  int reconstruct(Vector<Real> &a, const int col) {
+  virtual int reconstruct(Vector<Real> &a, const int col) {
     // Check to see if col is less than ncol_
     if ( col >= ncol_ || col < 0 ) return 2; // Input column index out of range!
     const Real zero(0);
