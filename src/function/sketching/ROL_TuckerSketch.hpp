@@ -84,7 +84,9 @@ private:
 
   void clearFactorization() {
     if (factorization_ != nullptr) {
+      // std::cout << "before delete factorization" << std::endl;
       Tucker::MemoryManager::safe_delete(factorization_);
+      // std::cout << "after delete factorization" << std::endl;
       factorization_ = nullptr;
     }
   }
@@ -111,7 +113,18 @@ private:
     Tucker::SizeArray reducedI(2);
     reducedI[0] = stateRank_;
     reducedI[1] = timeRank_;
+    // std::cout << "precall" << std::endl;
     factorization_ = Tucker::STHOSVD(historyTensor_, &reducedI);
+    // std::cout << "postcall" << std::endl;
+    // std::cout << "U0 "
+    //       << factorization_->U[0]->nrows() << " x "
+    //       << factorization_->U[0]->ncols() << std::endl;
+    // std::cout << "U1 "
+    //       << factorization_->U[1]->nrows() << " x "
+    //       << factorization_->U[1]->ncols() << std::endl;
+    // std::cout << "G "
+    //       << factorization_->G->size(0) << " x "
+    //       << factorization_->G->size(1) << std::endl;
     return (factorization_ == nullptr ? 5 : 0);
   }
 
@@ -306,8 +319,10 @@ public:
       }
     }
 
+      // std::cout << "advance" << std::endl;
     if (tpetraFastPath_) {
 #if ROL_TUCKERSKETCH_HAS_TPETRA
+      // std::cout << "ROL::TuckerSketch: using Tpetra fast path" << std::endl;
       return (copyFromTpetraMultiVector(nu, h, col) ? 0 : 1);
 #else
       return 1;
@@ -332,7 +347,15 @@ public:
 
       if (tpetraFastPath_) {
 #if ROL_TUCKERSKETCH_HAS_TPETRA
-        return (copyToTpetraMultiVector(a, coeffWorkspace_) ? 0 : 5);
+  // std::cout << "before reconstruct column" << std::endl;
+  computeReconstructionColumn(coeffWorkspace_, col);
+  // std::cout << "after reconstruct column" << std::endl;
+
+  // std::cout << "before copyToTpetra" << std::endl;
+  auto ok = copyToTpetraMultiVector(a, coeffWorkspace_);
+  // std::cout << "after copyToTpetra" << std::endl;
+  return (ok ? 0 : 5);
+  // return (copyToTpetraMultiVector(a, coeffWorkspace_) ? 0 : 5);
 #else
         return 5;
 #endif
