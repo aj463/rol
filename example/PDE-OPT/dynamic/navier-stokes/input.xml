@@ -3,7 +3,7 @@
   <ParameterList name="Problem">
     <!-- OUTPUT -->
     <Parameter name="Check Derivatives"         type="bool"   value="false"       />
-    <Parameter name="Print Uncontrolled State"  type="bool"   value="true"        />
+    <Parameter name="Print Uncontrolled State"  type="bool"   value="false"       />
     <!-- PROBLEM INFORMATION -->
     <Parameter name="Integrated Objective type" type="string" value="Dissipation" />
     <Parameter name="Final Time Objective type" type="string" value="Tracking"    />
@@ -31,20 +31,22 @@
   <!--================================================================================--> 
   <!-- Sketching Parameters                                                           --> 
   <ParameterList name="Reduced Dynamic Objective">
-    <Parameter name="Use Sketching"                 type="bool" value="false" />
-    <Parameter name="State Rank"                    type="int"  value="10"    />
-    <Parameter name="Adjoint Rank"                  type="int"  value="10"    />
-    <Parameter name="State Sensitvity Rank"         type="int"  value="10"    />
-    <Parameter name="Use Hessian"                   type="bool" value="true"  />
-    <Parameter name="Use Only Sketched Sensitivity" type="bool" value="true"  />
+    <Parameter name="Use Sketching"                 type="bool" value="true"    />
+    <Parameter name="Sketch Type"                   type="string" value="Tucker" />
+    <Parameter name="Tucker Relative Tolerance"     type="double" value="1e-6"   />
+    <Parameter name="State Rank"                    type="int"  value="10"       />
+    <Parameter name="Adjoint Rank"                  type="int"  value="10"       />
+    <Parameter name="State Sensitivity Rank"        type="int"  value="10"       />
+    <Parameter name="Use Hessian"                   type="bool" value="false"    />
+    <Parameter name="Use Only Sketched Sensitivity" type="bool" value="true"     />
   </ParameterList>
   <!--================================================================================-->
 
   <!--================================================================================--> 
   <!-- Time Discretization                                                            --> 
   <ParameterList name="Time Discretization">
-    <Parameter name="End Time"             type="double" value="20.0" />
-    <Parameter name="Number of Time Steps" type="int"    value="800"  />
+    <Parameter name="End Time"             type="double" value="1.0"  />
+    <Parameter name="Number of Time Steps" type="int"    value="40"   />
     <Parameter name="Theta"                type="double" value="1.0"  />
   </ParameterList>
   <!--================================================================================-->
@@ -126,7 +128,7 @@
     <ParameterList name="Secant">
       <Parameter name="Type"                   type="string" value="Limited-Memory BFGS" />
       <Parameter name="Use as Preconditioner"  type="bool"   value="false"               />
-      <Parameter name="Use as Hessian"         type="bool"   value="false"               />
+      <Parameter name="Use as Hessian"         type="bool"   value="true"               />
       <Parameter name="Maximum Storage"        type="int"    value="10"                  />
       <Parameter name="Barzilai-Borwein Type"  type="int"    value="1"                   />
     </ParameterList>

@@ -285,6 +285,18 @@ public:
     }
   }
 
+  virtual void setTolerance(Real tol) {
+    ROL_UNUSED(tol);
+  }
+
+  virtual void scaleTolerance(Real factor) {
+    ROL_UNUSED(factor);
+  }
+
+  virtual Real getTolerance(void) const {
+    return static_cast<Real>(-1);
+  }
+
   virtual void update(void) {
     reset(true);
   }

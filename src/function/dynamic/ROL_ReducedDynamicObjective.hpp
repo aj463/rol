@@ -18,6 +18,8 @@
 #include "ROL_DynamicConstraint.hpp"
 
 #include <fstream>
+#include <stdexcept>
+#include <string>
 
 /** @ingroup func_group
     \class ROL::ReducedDynamicObjective
@@ -55,6 +57,10 @@ private:
   const size_type                    Nt_;
   // General sketch information.
   const bool                         useSketch_;
+  const std::string                  sketchType_;
+  const bool                         useTuckerSketch_;
+  Real                               tuckerTolerance_;
+  const Real                         tuckerToleranceDecreaseFactor_;
   // State sketch information.
   size_type                          rankState_;
   Ptr<Sketch<Real>>                  stateSketch_;
@@ -101,9 +107,11 @@ private:
   // Helper to create the appropriate sketch backend.
   Ptr<Sketch<Real>> makeSketch(const std::string& type, const Vector<Real>& x,
                                int ncol, int rank, Real orthTol, int orthIt,
-                               bool trunc, unsigned dseed, unsigned rseed) const {
+                               bool trunc, unsigned dseed, unsigned rseed,
+                               Real tuckerTolerance) const {
     if (type == "Tucker") {
-      return makePtr<TuckerSketch<Real>>(x, ncol, rank, orthTol, orthIt, trunc, dseed, rseed);
+      return makePtr<TuckerSketch<Real>>(x, ncol, rank, orthTol, orthIt,
+                                         trunc, dseed, rseed, tuckerTolerance);
     }
     return makePtr<Sketch<Real>>(x, ncol, rank, orthTol, orthIt, trunc, dseed, rseed);
   }
@@ -150,6 +158,10 @@ public:
       timeStamp_            ( timeStamp ),                                     // Vector of time stamps.
       Nt_                   ( timeStamp.size() ),                              // Number of time intervals.
       useSketch_            ( pl.get("Use Sketching", false) ),                // Use state sketch if true.
+      sketchType_           ( pl.get("Sketch Type", std::string("Random")) ),  // Sketch backend type.
+      useTuckerSketch_      ( sketchType_ == "Tucker" ),                       // Use Tucker sketch backend.
+      tuckerTolerance_      ( pl.get("Tucker Relative Tolerance", 1e-6) ),      // STHOSVD tolerance.
+      tuckerToleranceDecreaseFactor_( pl.get("Tucker Tolerance Decrease Factor", 0.1) ),
       rankState_            ( pl.get("State Rank", 10) ),                      // Rank of state sketch.
       stateSketch_          ( nullPtr ),                                       // State sketch object.
       rankAdjoint_          ( pl.get("Adjoint Rank", 10) ),                    // Rank of adjoint sketch.
@@ -175,34 +187,46 @@ public:
       stream_               ( stream ),                                        // Output stream to print sketch information.
       print_                ( pl.get("Print Optimization Vector", false) ),    // Print control vector to file
       freq_                 ( pl.get("Output Frequency", 5) ) {                // Print frequency for control vector
+    ROL_TEST_FOR_EXCEPTION(useTuckerSketch_ &&
+      tuckerTolerance_ < static_cast<Real>(0),
+      std::invalid_argument,
+      "ROL::ReducedDynamicObjective requires a nonnegative Tucker Relative Tolerance.");
+    ROL_TEST_FOR_EXCEPTION(useTuckerSketch_ &&
+      (tuckerToleranceDecreaseFactor_ <= static_cast<Real>(0)
+       || tuckerToleranceDecreaseFactor_ >= static_cast<Real>(1)),
+      std::invalid_argument,
+      "ROL::ReducedDynamicObjective requires Tucker Tolerance Decrease Factor to be in (0,1).");
     uhist_.clear(); lhist_.clear(); whist_.clear(); phist_.clear();
     if (useSketch_) { // Only maintain a sketch of the state time history
       Real orthTol   = pl.get("Orthogonality Tolerance", 1e2*ROL_EPSILON<Real>());
       int  orthIt    = pl.get("Reorthogonalization Iterations", 5);
       bool trunc     = pl.get("Truncate Approximation", false);
-      std::string sketchType = pl.get("Sketch Type", std::string("Random"));
       if (syncHessRank_) {
         rankAdjoint_   = rankState_;
         rankStateSens_ = rankState_;
       }
       unsigned dseed = pl.get("State Domain Seed",0);
       unsigned rseed = pl.get("State Range Seed",0);
-      stateSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
-                                rankState_, orthTol, orthIt, trunc, dseed, rseed);
-      stateSketchCache_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
-                                     rankState_, orthTol, orthIt, trunc, dseed, rseed);
+      stateSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
+                                rankState_, orthTol, orthIt, trunc, dseed, rseed,
+                                tuckerTolerance_);
+      stateSketchCache_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
+                                     rankState_, orthTol, orthIt, trunc, dseed, rseed,
+                                     tuckerTolerance_);
       uhist_.push_back(u0_->clone());
       uhist_.push_back(u0_->clone());
       lhist_.push_back(cvec->dual().clone());
       dseed = pl.get("Adjoint Domain Seed",0);
       rseed = pl.get("Adjoint Range Seed",0);
-      adjointSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
-                                  rankAdjoint_, orthTol, orthIt, trunc, dseed, rseed);
+      adjointSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
+                                  rankAdjoint_, orthTol, orthIt, trunc, dseed, rseed,
+                                  tuckerTolerance_);
       if (useHessian_) {
         dseed = pl.get("State Sensitivity Domain Seed",0);
         rseed = pl.get("State Sensitivity Range Seed",0);
-        stateSensSketch_ = makeSketch(sketchType, *u0_, static_cast<int>(Nt_)-1,
-                                      rankStateSens_, orthTol, orthIt, trunc, dseed, rseed);
+        stateSensSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
+                                      rankStateSens_, orthTol, orthIt, trunc, dseed, rseed,
+                                      tuckerTolerance_);
         whist_.push_back(u0_->clone());
         whist_.push_back(u0_->clone());
         phist_.push_back(cvec->dual().clone());
@@ -419,7 +443,13 @@ public:
       }
       tol = updateSketch(x,tol);
       if (stream_ != nullPtr) {
-        *stream_ << "    State Rank for Gradient Computation: " << rankState_ << std::endl;
+        if (useTuckerSketch_) {
+          *stream_ << "    State Tucker Tolerance for Gradient Computation: "
+                   << stateSketch_->getTolerance() << std::endl;
+        }
+        else {
+          *stream_ << "    State Rank for Gradient Computation: " << rankState_ << std::endl;
+        }
         *stream_ << "    Residual Norm:                       " << tol << std::endl;
         *stream_ << std::string(80,'=') << std::endl; 
       }
@@ -730,25 +760,54 @@ private:
         uhist_[0]->set(*uhist_[1]);
       }
       if (stream_ != nullPtr) {
-        *stream_ << "      *** State Rank:                    " << rankState_ << std::endl;
+        if (useTuckerSketch_) {
+          *stream_ << "      *** State Tucker Tolerance:        "
+                   << stateSketch_->getTolerance() << std::endl;
+        }
+        else {
+          *stream_ << "      *** State Rank:                    " << rankState_ << std::endl;
+        }
         *stream_ << "      *** Required Tolerance:            " << tol0 << std::endl;
         *stream_ << "      *** Residual Norm:                 " << err << std::endl;
       }
       if (err > tol0) {
-        rankState_ = (sumRankUpdate_ ? rankState_ + updateFactor_ : rankState_ * updateFactor_); 
-        if (!useDefaultRankUpdate_)
-          rankState_ = std::max(rankState_,static_cast<size_type>(std::ceil((b_-std::log(tol0))/a_)));
-        //Real a(0.1838), b(3.1451); // Navier-Stokes
-        //Real a(2.6125), b(2.4841); // Semilinear
-        //rankState_  = std::max(rankState_+2,static_cast<size_t>(std::ceil((b-std::log(tol0))/a)));
-        //rankState_ *= updateFactor_; // Perhaps there is a better update strategy
-        rankState_  = (maxRank_ < rankState_ ? maxRank_ : rankState_);
-        stateSketch_->setRank(rankState_);
-        if (syncHessRank_) {
-          rankAdjoint_   = rankState_;
-          rankStateSens_ = rankState_;
-          adjointSketch_->setRank(rankAdjoint_);
-          stateSensSketch_->setRank(rankStateSens_);
+        if (useTuckerSketch_) {
+          const Real oldTol = stateSketch_->getTolerance();
+          stateSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
+          stateSketchCache_->scaleTolerance(tuckerToleranceDecreaseFactor_);
+          if (syncHessRank_) {
+            adjointSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
+            if (useHessian_) {
+              stateSensSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
+            }
+          }
+          tuckerTolerance_ = stateSketch_->getTolerance();
+          ROL_TEST_FOR_EXCEPTION(tuckerTolerance_ >= oldTol, std::runtime_error,
+            "ROL::ReducedDynamicObjective cannot satisfy the requested sketch tolerance; "
+            "the minimum Tucker tolerance has been reached.");
+          if (stream_ != nullPtr) {
+            *stream_ << "      *** Updated Tucker Tolerance:      "
+                     << tuckerTolerance_ << std::endl;
+          }
+        }
+        else {
+          rankState_ = (sumRankUpdate_ ? rankState_ + updateFactor_ : rankState_ * updateFactor_);
+          if (!useDefaultRankUpdate_)
+            rankState_ = std::max(rankState_,static_cast<size_type>(std::ceil((b_-std::log(tol0))/a_)));
+          //Real a(0.1838), b(3.1451); // Navier-Stokes
+          //Real a(2.6125), b(2.4841); // Semilinear
+          //rankState_  = std::max(rankState_+2,static_cast<size_t>(std::ceil((b-std::log(tol0))/a)));
+          //rankState_ *= updateFactor_; // Perhaps there is a better update strategy
+          rankState_  = (maxRank_ < rankState_ ? maxRank_ : rankState_);
+          stateSketch_->setRank(rankState_);
+          if (syncHessRank_) {
+            rankAdjoint_   = rankState_;
+            rankStateSens_ = rankState_;
+            adjointSketch_->setRank(rankAdjoint_);
+            if (useHessian_) {
+              stateSensSketch_->setRank(rankStateSens_);
+            }
+          }
         }
         isStateComputed_   = false;
         isAdjointComputed_ = false;
