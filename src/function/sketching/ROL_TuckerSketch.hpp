@@ -71,6 +71,7 @@ private:
   int stateRank_;
   int timeRank_;
   int streamedColumns_;
+  int streamDirection_;
   Real epsilon_;
   bool tpetraFastPath_;
 
@@ -111,6 +112,30 @@ private:
     return (0 <= col && col < timeDim_);
   }
 
+  int expectedInputColumn() const {
+    return (streamDirection_ < 0 ? timeDim_ - 1 - streamedColumns_
+                                 : streamedColumns_);
+  }
+
+  int streamedColumn(const int col) const {
+    return (streamDirection_ < 0 ? timeDim_ - 1 - col : col);
+  }
+
+  bool updateStreamDirection(const int col) {
+    if (streamedColumns_ == 0) {
+      if (col == 0) {
+        streamDirection_ = 1;
+      }
+      else if (col == timeDim_ - 1) {
+        streamDirection_ = -1;
+      }
+      else {
+        return false;
+      }
+    }
+    return (col == expectedInputColumn());
+  }
+
   size_t tpetraReduceChunkSize() const {
     // Keep the extra communication buffer bounded. The dense Tucker slice is
     // still required by the TuckerMPI streaming update, but the gather no longer
@@ -122,6 +147,7 @@ private:
   void clearFactorization() {
     streamingFactorization_.reset();
     streamedColumns_ = 0;
+    streamDirection_ = 0;
     stateRank_ = 0;
     timeRank_  = 0;
   }
@@ -435,6 +461,7 @@ public:
       stateRank_(0),
       timeRank_(0),
       streamedColumns_(0),
+      streamDirection_(0),
       epsilon_(epsilon),
       tpetraFastPath_(hasTpetraFastPath(x)),
       streamingFactorization_(nullptr),
@@ -473,7 +500,7 @@ public:
     if (!validColumn(col) || h.dimension() != stateDim_) {
       return STATUS_ADVANCE_INPUT_ERROR;
     }
-    if (col != streamedColumns_ || eta != static_cast<Real>(1)) {
+    if (eta != static_cast<Real>(1) || !updateStreamDirection(col)) {
       return STATUS_ADVANCE_INPUT_ERROR;
     }
     if (epsilon_ < static_cast<Real>(0)) {
@@ -535,7 +562,8 @@ public:
   }
 
   int reconstruct(Vector<Real>& a, const int col) override {
-    if (!validColumn(col) || col >= streamedColumns_) {
+    const int scol = streamedColumn(col);
+    if (!validColumn(col) || scol >= streamedColumns_) {
       return STATUS_RECONSTRUCT_ERROR;
     }
     if (a.dimension() != stateDim_) {
@@ -549,13 +577,13 @@ public:
 
       if (tpetraFastPath_) {
 #if ROL_TUCKERSKETCH_HAS_TPETRA
-        return reconstructTpetraMultiVector(a, col) ? STATUS_SUCCESS : STATUS_FACTORIZATION_ERROR;
+        return reconstructTpetraMultiVector(a, scol) ? STATUS_SUCCESS : STATUS_FACTORIZATION_ERROR;
 #else
         return STATUS_FACTORIZATION_ERROR;
 #endif
       }
 
-      computeReconstructionColumn(coeffWorkspace_, col);
+      computeReconstructionColumn(coeffWorkspace_, scol);
       reconstructWithBasis(a, coeffWorkspace_);
     }
     catch (const std::exception&) {
