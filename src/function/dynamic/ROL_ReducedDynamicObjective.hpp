@@ -216,12 +216,12 @@ public:
       uhist_.push_back(u0_->clone());
       uhist_.push_back(u0_->clone());
       lhist_.push_back(cvec->dual().clone());
-      dseed = pl.get("Adjoint Domain Seed",0);
-      rseed = pl.get("Adjoint Range Seed",0);
-      adjointSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
-                                  rankAdjoint_, orthTol, orthIt, trunc, dseed, rseed,
-                                  tuckerTolerance_);
       if (useHessian_) {
+        dseed = pl.get("Adjoint Domain Seed",0);
+        rseed = pl.get("Adjoint Range Seed",0);
+        adjointSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
+                                    rankAdjoint_, orthTol, orthIt, trunc, dseed, rseed,
+                                    tuckerTolerance_);
         dseed = pl.get("State Sensitivity Domain Seed",0);
         rseed = pl.get("State Sensitivity Range Seed",0);
         stateSensSketch_ = makeSketch(sketchType_, *u0_, static_cast<int>(Nt_)-1,
@@ -261,8 +261,10 @@ public:
     if (useSketch_) {
       stateSketch_->reset(true);
       if (flag == true) {
-        adjointSketch_->reset(true);
-        if (useHessian_) stateSensSketch_->reset(true);
+        if (useHessian_) {
+          adjointSketch_->reset(true);
+          stateSensSketch_->reset(true);
+        }
       }
     }
     for (size_type i = 0; i < uhist_.size(); ++i) uhist_[i]->zero();
@@ -299,8 +301,10 @@ public:
           isAdjointComputed_ = false;
           stateSketch_->reset(true);
           stateSketchCache_->reset(true);
-          adjointSketch_->reset(true);
-          if (useHessian_) stateSensSketch_->reset(true);
+          if (useHessian_) {
+            adjointSketch_->reset(true);
+            stateSensSketch_->reset(true);
+          }
           break;
         }
         case UpdateType::Trial:
@@ -321,8 +325,10 @@ public:
         case UpdateType::Accept:
         {
           isAdjointComputed_ = false;
-          adjointSketch_->reset(true);
-          if (useHessian_) stateSensSketch_->reset(true);
+          if (useHessian_) {
+            adjointSketch_->reset(true);
+            stateSensSketch_->reset(true);
+          }
           break;
         }
         case UpdateType::Revert:
@@ -351,8 +357,10 @@ public:
           stateSketch_       = stateSketchCache_;
           stateSketchCache_  = tmp;
           stateSketch_->reset(true);
-          adjointSketch_->reset(true);
-          if (useHessian_) stateSensSketch_->reset(true);
+          if (useHessian_) {
+            adjointSketch_->reset(true);
+            stateSensSketch_->reset(true);
+          }
           break;
         }
       }
@@ -459,23 +467,17 @@ public:
       uhist_[1]->set(*uhist_[0]);
       eflag = stateSketch_->reconstruct(*uhist_[0],static_cast<int>(Nt_)-3);
       throwError(eflag,"reconstruct","gradient",351);
-      if (isAdjointComputed_) {
-        eflag = adjointSketch_->reconstruct(*lhist_[0],static_cast<int>(Nt_)-2);
-        throwError(eflag,"reconstruct","gradient",354);
-      }
     }
     // Update dynamic constraint and objective
     con_->update(*uhist_[uindex-1], *uhist_[uindex], *xp.get(Nt_-1), timeStamp_[Nt_-1]);
     obj_->update(*uhist_[uindex-1], *uhist_[uindex], *xp.get(Nt_-1), timeStamp_[Nt_-1]);
     // Solve for terminal condition
-    if (!isAdjointComputed_) {
-      setTerminalCondition(*lhist_[lindex],
-                           *uhist_[uindex-1], *uhist_[uindex],
-                           *xp.get(Nt_-1),    timeStamp_[Nt_-1]);
-      if (useSketch_) {
-        eflag = adjointSketch_->advance(one,*lhist_[0],static_cast<int>(Nt_)-2,one);
-        throwError(eflag,"advance","gradient",367);
-      }
+    setTerminalCondition(*lhist_[lindex],
+                         *uhist_[uindex-1], *uhist_[uindex],
+                         *xp.get(Nt_-1),    timeStamp_[Nt_-1]);
+    if (useSketch_ && useHessian_) {
+      eflag = adjointSketch_->advance(one,*lhist_[0],static_cast<int>(Nt_)-2,one);
+      throwError(eflag,"advance","gradient",367);
     }
     // Update gradient on terminal interval
     updateGradient(*gp.get(Nt_-1),    *lhist_[lindex],
@@ -483,12 +485,10 @@ public:
                    *xp.get(Nt_-1),    timeStamp_[Nt_-1]);
     // Run reverse time stepper
     for (size_type k = Nt_-2; k > 0; --k) {
-      if (!isAdjointComputed_) {
-        // Compute k+1 component of rhs
-        computeAdjointRHS(*rhs_,             *lhist_[lindex],
-                          *uhist_[uindex-1], *uhist_[uindex],
-                          *xp.get(k+1),      timeStamp_[k+1]);
-      }
+      // Compute k+1 component of rhs
+      computeAdjointRHS(*rhs_,             *lhist_[lindex],
+                        *uhist_[uindex-1], *uhist_[uindex],
+                        *xp.get(k+1),      timeStamp_[k+1]);
       uindex = (useSketch_ ? 1 : k);
       lindex = (useSketch_ ? 0 : k);
       // Recover state from sketch
@@ -501,23 +501,17 @@ public:
           eflag = stateSketch_->reconstruct(*uhist_[0],static_cast<int>(k)-2);
           throwError(eflag,"reconstruct","gradient",392);
         }
-        if (isAdjointComputed_) {
-          eflag = adjointSketch_->reconstruct(*lhist_[0],static_cast<int>(k)-1);
-          throwError(eflag,"reconstruct","gradient",396);
-        }
       }
       // Update dynamic constraint and objective
       con_->update(*uhist_[uindex-1], *uhist_[uindex], *xp.get(k), timeStamp_[k]);
       obj_->update(*uhist_[uindex-1], *uhist_[uindex], *xp.get(k), timeStamp_[k]);
       // Solve for adjoint on interval k
-      if (!isAdjointComputed_) {
-        advanceAdjoint(*lhist_[lindex],   *rhs_,
-                       *uhist_[uindex-1], *uhist_[uindex],
-                       *xp.get(k),        timeStamp_[k]);
-        if (useSketch_) {
-          eflag = adjointSketch_->advance(one,*lhist_[0],static_cast<int>(k)-1,one);
-          throwError(eflag,"advance","gradient",367);
-        }
+      advanceAdjoint(*lhist_[lindex],   *rhs_,
+                     *uhist_[uindex-1], *uhist_[uindex],
+                     *xp.get(k),        timeStamp_[k]);
+      if (useSketch_ && useHessian_) {
+        eflag = adjointSketch_->advance(one,*lhist_[0],static_cast<int>(k)-1,one);
+        throwError(eflag,"advance","gradient",367);
       }
       // Update gradient on interval k
       updateGradient(*gp.get(k),        *lhist_[lindex],
@@ -776,8 +770,8 @@ private:
           stateSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
           stateSketchCache_->scaleTolerance(tuckerToleranceDecreaseFactor_);
           if (syncHessRank_) {
-            adjointSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
             if (useHessian_) {
+              adjointSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
               stateSensSketch_->scaleTolerance(tuckerToleranceDecreaseFactor_);
             }
           }
@@ -801,10 +795,10 @@ private:
           rankState_  = (maxRank_ < rankState_ ? maxRank_ : rankState_);
           stateSketch_->setRank(rankState_);
           if (syncHessRank_) {
-            rankAdjoint_   = rankState_;
-            rankStateSens_ = rankState_;
-            adjointSketch_->setRank(rankAdjoint_);
             if (useHessian_) {
+              rankAdjoint_   = rankState_;
+              rankStateSens_ = rankState_;
+              adjointSketch_->setRank(rankAdjoint_);
               stateSensSketch_->setRank(rankStateSens_);
             }
           }
