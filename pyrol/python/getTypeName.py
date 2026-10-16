@@ -28,7 +28,7 @@ def _decorator23(value_method):
             u, z, tol = args
             return value_method(u, z, tol)
         else:
-            raise ArgumentError("Unexcepted number of arguments")
+            raise TypeError("Unexpected number of arguments")
     return value
 
 
@@ -40,7 +40,7 @@ def _decorator34(value_method):
         elif len(args) == 4:
             c, u, z, tol = args
             return value_method(c, u, z, tol)
-        raise ArgumentError("Unexcepted number of arguments")
+        raise TypeError("Unexpected number of arguments")
     return value
 
 

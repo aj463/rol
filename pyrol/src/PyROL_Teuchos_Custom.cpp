@@ -60,13 +60,10 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
     plist->set(name, h.cast<double>());
   }
 
-  // Unicode values
+  // Unicode values (stored as UTF-8)
   else if (PyUnicode_Check(value.ptr ()))
   {
-    PyObject * pyBytes = PyUnicode_AsASCIIString(value.ptr ());
-    if (!pyBytes) return false;
-    plist->set(name, std::string(PyBytes_AsString(pyBytes)));
-    Py_DECREF(pyBytes);
+    plist->set(name, h.cast<std::string>());
   }
 
   // String values
@@ -76,11 +73,7 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
   }
 
   // None object not allowed: this is a python type not usable by
-  // Trilinos solver packages, so we reserve it for the
-  // getPythonParameter() function to indicate that the requested
-  // parameter does not exist in the given Teuchos::ParameterList.
-  // For logic reasons, this check must come before the check for
-  // Teuchos::ParameterList
+  // Trilinos solver packages.
   else if (value.ptr () == Py_None)
   {
     return false;
@@ -106,6 +99,8 @@ py::object getPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
   // objects so that I can query the Teuchos::ParameterList without setting
   // the "used" flag to true.
   const Teuchos::ParameterEntry * entry = plist->getEntryPtr(name);
+  if (entry == nullptr)
+    throw py::key_error(name);
   // Boolean parameter values
   if (entry->isType< bool >())
   {
