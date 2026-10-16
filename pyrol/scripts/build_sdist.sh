@@ -5,9 +5,11 @@
 # and turn that into an sdist. Works on Linux and macOS.
 #
 # Usage: pyrol/scripts/build_sdist.sh [options]
-#   -w DIR     work directory; the sdist is written to DIR/dist (default: ./pyrol-sdist)
-#   -t DIR     Trilinos source tree to use (its packages/rol is replaced by this
-#              checkout); by default, the latest Trilinos develop is cloned into DIR
+#   -w DIR     work directory, outside this checkout; the sdist is written to
+#              DIR/dist (default: ./pyrol-sdist)
+#   -t DIR     Trilinos source tree to use, outside this checkout (its packages/rol
+#              is replaced by this checkout); by default, the latest Trilinos
+#              develop is cloned into DIR
 #   -b BINDER  Binder executable (default: binder on the PATH)
 #   -l PREFIX  on macOS, the LLVM Binder was built with (default: brew --prefix llvm@16)
 #   -p PYTHON  Python with pybind11 and build installed (default: python3)
@@ -15,7 +17,7 @@
 # Also needed: CMake, Ninja and BLAS/LAPACK. See pyrol/DEVELOPING.md for Binder.
 set -euo pipefail
 
-usage() { sed -n '2,15p' "$0" | sed -E 's/^# ?//'; exit "$1"; }
+usage() { sed -n '2,17p' "$0" | sed -E 's/^# ?//'; exit "$1"; }
 
 work=pyrol-sdist
 trilinos=""
@@ -39,10 +41,24 @@ rol=$(cd "$(dirname "$0")/../.." && pwd)
 mkdir -p "$work"
 work=$(cd "$work" && pwd)
 
+# This checkout is copied into the Trilinos tree, so neither that tree nor the
+# work directory may be inside it.
+inside_checkout() { case "$1/" in "$rol"/*) return 0 ;; esac; return 1; }
+if inside_checkout "$work"; then
+  rmdir "$work" 2>/dev/null || true
+  echo "The work directory $work is inside this checkout; pass -w with one outside it." >&2
+  exit 1
+fi
+
 # Trilinos, with this checkout of ROL as packages/rol.
 if [ -z "$trilinos" ]; then
   trilinos=$work/trilinos
   [ -d "$trilinos" ] || git clone --depth 1 https://github.com/trilinos/Trilinos.git "$trilinos"
+fi
+trilinos=$(cd "$trilinos" && pwd)
+if inside_checkout "$trilinos"; then
+  echo "The Trilinos tree $trilinos is inside this checkout; pass -t with one outside it." >&2
+  exit 1
 fi
 rsync -a --delete --exclude=.git "$rol/" "$trilinos/packages/rol/"
 

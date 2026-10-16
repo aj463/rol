@@ -9,6 +9,7 @@ on:
       - develop
     paths:
       - 'pyrol/**'
+      - 'cmake/PythonTest.cmake'
       - '.github/workflows/pyrol.yml'
   workflow_dispatch:
 
@@ -63,9 +64,6 @@ jobs:
               -D ROL_ENABLE_PYROL:BOOL=ON \
               -D ROL_ENABLE_TESTS:BOOL=ON \
               -D ROL_Ptr:STRING="${{ matrix.ptr }}" \
-              -D PyROL_BINDER_clang_include_dirs:PATH="${LLVM_PREFIX}/include" \
-              -D PyROL_BINDER_LibClang_include_dir:PATH="${LLVM_PREFIX}/lib/clang/${LLVM_VERSION}/include" \
-              -D PyROL_BINDER_GCC_TOOLCHAIN:PATH="${GCC_PREFIX}" \
               -D PYROL_ENABLE_BINDER:BOOL=ON \
               -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES:BOOL=OFF \
               -D Trilinos_ENABLE_EXAMPLES:BOOL=OFF \

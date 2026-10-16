@@ -23,7 +23,8 @@ namespace pyrol {
 // "+binder std::vector" in PyROL_common.cfg). pybind11's bind_vector makes it
 // a Python sequence that can be built from any iterable, and Python lists,
 // tuples and NumPy arrays convert to it wherever ROL takes a std::vector.
-// Vectors of numbers also expose their data to NumPy without a copy. The
+// Vectors of numbers also expose their data to NumPy without a copy; such a
+// view is valid only until the vector changes size (see pyrol/README.md). The
 // C++-style methods keep code written for the previous bindings working.
 template <typename T, typename Allocator>
 void vector_binder(pybind11::module &m, std::string const &name, std::string const & /*allocator*/) {

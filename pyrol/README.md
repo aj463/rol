@@ -67,7 +67,9 @@ Python as above or read with `getParametersFromXmlFile` or
 - Where ROL takes a `std::vector`, pass a Python list, tuple or NumPy array,
   for example `PartitionedVector([x, y])`. The `std::vector`s that ROL
   returns behave like Python lists, and those of numbers can be viewed as
-  NumPy arrays without a copy (`numpy.asarray(v)`).
+  NumPy arrays without a copy (`numpy.asarray(v)`). A view shares the
+  vector's storage, so it is valid only until the vector changes size, for
+  example with `append`, `extend` or `resize`; after that, make a new one.
 
 More examples (SimOpt, dynamic constraints, PyTorch tensors and networks) are
 in [`pyrol/example`](https://github.com/sandialabs/rol/tree/develop/pyrol/example).
