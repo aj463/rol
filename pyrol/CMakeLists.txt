@@ -85,6 +85,22 @@ MACRO(SUBDIRLIST result curdir)
   SET(${result} ${dirlist})
 ENDMACRO()
 
+# Set result to the directories with headers among the given subdirectories
+# of root and the directories below them, sorted.
+function(get_header_dirs result root)
+  set(header_dirs "")
+  foreach(subdir IN LISTS ARGN)
+    file(GLOB_RECURSE headers "${root}/${subdir}/*.hpp")
+    foreach(header IN LISTS headers)
+      get_filename_component(header_dir "${header}" DIRECTORY)
+      list(APPEND header_dirs "${header_dir}")
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES header_dirs)
+  list(SORT header_dirs)
+  set(${result} ${header_dirs} PARENT_SCOPE)
+endfunction()
+
 # Write the items of the list variable list_var to filename, one per line.
 function(write_lines filename list_var)
   set(contents "")
@@ -135,85 +151,12 @@ GET_PROPERTY( LAPACK_DIR           GLOBAL PROPERTY LAPACK_DIR  )
 GET_PROPERTY( BLAS_DIR             GLOBAL PROPERTY BLAS_DIR  )
 
 # ROL's include directories, in search order. They are used to compile the
-# module and, when Binder runs, to collect the headers it may need.
+# module and, when Binder runs, to collect the headers it may need. Those of
+# ROL's components are all their directories with headers.
 SET(ROL_SRC_DIR "${${PACKAGE_NAME}_SOURCE_DIR}/src")
-SET(ROL_SRC_SUBDIRS
-  algorithm
-  algorithm/TypeB
-  algorithm/TypeE
-  algorithm/TypeG
-  algorithm/TypeP
-  algorithm/TypeU
-  algorithm/TypeB/pqn
-  algorithm/TypeG/augmentedlagrangian/
-  algorithm/TypeG/fletcher
-  algorithm/TypeG/interiorpoint
-  algorithm/TypeG/moreauyosida
-  algorithm/TypeG/stabilizedlcl
-  algorithm/TypeU/bundle
-  algorithm/TypeU/linesearch
-  algorithm/TypeU/linesearch/descent
-  algorithm/TypeU/trustregion
-  elementwise
-  function
-  function/dynamic
-  function/boundconstraint
-  function/constraint
-  function/nlls
-  function/projection
-  function/objective
-  function/operator
-  function/simopt
-  function/sketching
-  function/std
-  sol/function
-  sol/function/distribution
-  sol/function/expectationquad
-  sol/function/randvarfunctional
-  sol/function/randvarfunctional/risk
-  sol/function/randvarfunctional/risk/fdivergence
-  sol/function/randvarfunctional/risk/spectral
-  sol/function/randvarfunctional/error
-  sol/function/randvarfunctional/regret
-  sol/function/randvarfunctional/deviation
-  sol/function/randvarfunctional/probability
-  sol/function/progressivehedging
-  sol/algorithm
-  sol/algorithm/PrimalDual
-  sol/vector
-  sol/sampler
-  sol/sampler/SROM
-  sol/status
-  status
-  step
-  step/augmentedlagrangian
-  step/bundle
-  step/fletcher
-  step/interiorpoint
-  step/krylov
-  step/linesearch
-  step/moreauyosidapenalty
-  step/nonlinearcg
-  step/secant
-  step/trustregion
-  utils
-  utils/function_bindings
-  vector
-  zoo
-  )
-SET(ROL_OED_SUBDIRS
-  oed
-  oed/algorithm
-  oed/constraint
-  oed/factors
-  oed/objective
-  oed/objective/het
-  oed/objective/hom
-  oed/utilities
-  oed/vector
-  )
-list(TRANSFORM ROL_SRC_SUBDIRS PREPEND "${ROL_SRC_DIR}/")
-list(TRANSFORM ROL_OED_SUBDIRS PREPEND "${ROL_SRC_DIR}/")
+get_header_dirs(ROL_SRC_SUBDIRS ${ROL_SRC_DIR}
+  algorithm elementwise function sol status step utils vector zoo)
+get_header_dirs(ROL_OED_SUBDIRS ${ROL_SRC_DIR} oed)
 
 SET(ROL_all_include_dirs
   "${CMAKE_CURRENT_BINARY_DIR}/../src"
