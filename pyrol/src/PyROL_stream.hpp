@@ -16,18 +16,18 @@
 
 namespace ROL {
 
-  std::ofstream openOfstream(std::string filename){
+  inline std::ofstream openOfstream(std::string filename){
     std::ofstream outdata;
     outdata.open(filename);
     return outdata;
   }
 
-  void closeOfstream(std::ofstream &outdata) {
+  inline void closeOfstream(std::ofstream &outdata) {
     outdata.close();
   }
 
   // A non-owning pointer to std::cout.
-  ROL::Ptr<std::ostream> getCout() {
+  inline ROL::Ptr<std::ostream> getCout() {
     return ROL::makePtrFromRef<std::ostream>(std::cout);
   }
 }
