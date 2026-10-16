@@ -9,9 +9,9 @@ import importlib
 
 from . getTypeName import getTypeName, getDefaultScalarType, ROL_classes, ROL_members
 from pyrol.pyrol.Teuchos import ParameterList
+from ._version import __version__
 
 
-__version__ = '0.1.0'
 def version():
     return 'PyROL version: ' + __version__
 
