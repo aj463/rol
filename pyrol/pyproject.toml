@@ -32,9 +32,9 @@ build.verbose = true
 logging.level = "DEBUG"
 cmake.version = ">=3.23.0"
 wheel.install-dir = "pyrol"
-# Not needed at run time, and installed whatever the options below say: the
-# headers of ROL's Teuchos adapters, and TriBITS' files for BLAS and LAPACK.
-wheel.exclude = ["pyrol/include/**", "pyrol/lib/external_packages/**"]
+# Not needed at run time, and installed whatever the options below say:
+# TriBITS' files for BLAS and LAPACK.
+wheel.exclude = ["pyrol/lib/external_packages/**"]
 
 [tool.scikit-build.cmake.define]
 CMAKE_BUILD_TYPE = "RELEASE"
