@@ -71,7 +71,10 @@ and runs all Python tests with CTest.
 
 Versions pinned on purpose, to bump deliberately: pybind11 (in
 `pyproject.toml`, `python.yml` and `pyrol.yml`), the Binder commit (in both
-workflows) and cibuildwheel. Trilinos is always the latest `develop`.
+workflows) and cibuildwheel. Trilinos is always the latest `develop`. A new
+pybind11 version can change pybind11's internal ABI (2.x and 3.x differ), and
+then compiled extensions built with the old one cannot exchange objects with
+PyROL.
 
 ## Building and testing from source
 
