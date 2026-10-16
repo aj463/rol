@@ -64,6 +64,10 @@ Python as above or read with `getParametersFromXmlFile` or
   the SimOpt classes (`Objective_SimOpt`, `Constraint_SimOpt`,
   `Reduced_Objective_SimOpt`, `Vector_SimOpt`).
 - `pyrol.vectors.NumPyVector` is a ROL vector backed by a NumPy array.
+- Where ROL takes a `std::vector`, pass a Python list, tuple or NumPy array,
+  for example `PartitionedVector([x, y])`. The `std::vector`s that ROL
+  returns behave like Python lists, and those of numbers can be viewed as
+  NumPy arrays without a copy (`numpy.asarray(v)`).
 
 More examples (SimOpt, dynamic constraints, PyTorch tensors and networks) are
 in [`pyrol/example`](https://github.com/sandialabs/rol/tree/develop/pyrol/example).
