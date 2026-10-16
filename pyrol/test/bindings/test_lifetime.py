@@ -41,6 +41,13 @@ class TestLifetime(unittest.TestCase):
         self.solve(problem)
         np.testing.assert_allclose(x.array, [1.0, -1.0, 0.5], atol=1e-6)
 
+    def test_construction_leaves_the_class_alone(self):
+        # The add* methods are wrapped once, when PyROL wraps the class.
+        before = dict(vars(Problem))
+        Problem(Quadratic([1.0]), NumPyVector(np.zeros(1)))
+        self.assertEqual(dict(vars(Problem)), before)
+        self.assertEqual(Problem.addBoundConstraint.__name__, "addBoundConstraint")
+
     def test_clones_made_by_cpp(self):
         class TaggedVector(NumPyVector):
             clones = 0
