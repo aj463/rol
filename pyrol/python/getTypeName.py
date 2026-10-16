@@ -144,7 +144,3 @@ def getTypeName(class_name, scalar_type=getDefaultScalarType()):
     getTypeName('Objective') -> Objective_double_t (case-insensitive)."""
     return _find_class(class_name.lower() + "_" + scalar_type.lower(), class_name)
 
-
-def getTypeName2(class_name):
-    """Like getTypeName, but matching class_name alone."""
-    return _find_class(class_name.lower(), class_name)
