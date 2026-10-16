@@ -17,11 +17,13 @@ trackedTypes = set()
 
 
 def track(self, *args, **kwargs):
-    """Keep references on self to the PyROL objects among the arguments."""
+    """Keep references on self to the PyROL objects among the arguments,
+    including those in lists and tuples (which C++ receives as std::vector)."""
     for arg in (*args, *kwargs.values()):
-        # isinstance(arg, tuple(trackedTypes)), without testing every class.
-        if not trackedTypes.isdisjoint(type(arg).__mro__):
-            self._tracked_constructor_args.append(arg)
+        for item in arg if isinstance(arg, (list, tuple)) else (arg,):
+            # isinstance(item, tuple(trackedTypes)), without testing every class.
+            if not trackedTypes.isdisjoint(type(item).__mro__):
+                self._tracked_constructor_args.append(item)
 
 
 def tracking_method(cls_method):
@@ -121,38 +123,6 @@ for cls_name, cls_obj in inspect.getmembers(sys.modules['pyrol.pyrol.ROL']):
 ROL_classes = [(cls_name, cls_obj)
                for cls_name, cls_obj in inspect.getmembers(sys.modules['pyrol.pyrol.ROL'])
                if inspect.isclass(cls_obj)]
-
-
-def _add_sequence_protocol(cls):
-    """Make a Binder-generated std::vector class a proper Python sequence.
-
-    Binder maps __getitem__ to the unchecked operator[] and defines neither
-    __len__ nor __iter__, so iterating over a vector returned by ROL (e.g.
-    the table returned by checkGradient) read past its end.
-    """
-    def __getitem__(self, index):
-        size = self.size()
-        if isinstance(index, slice):
-            return [self.at(i) for i in range(*index.indices(size))]
-        if index < 0:
-            index += size
-        if not 0 <= index < size:
-            raise IndexError("vector index out of range")
-        return self.at(index)
-
-    cls.__len__ = lambda self: self.size()
-    cls.__getitem__ = __getitem__
-    cls.__iter__ = lambda self: (self.at(i) for i in range(self.size()))
-
-
-def _add_sequence_protocols():
-    from pyrol.pyrol import std
-    for name, cls in vars(std).items():
-        if name.startswith('vector_') and inspect.isclass(cls) and hasattr(cls, 'at'):
-            _add_sequence_protocol(cls)
-
-
-_add_sequence_protocols()
 
 
 def getDefaultScalarType():

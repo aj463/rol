@@ -14,8 +14,7 @@ pyrol/
 ├── python/           the pure-Python package, installed as pyrol/
 │   ├── __init__.py       exports the commonly used classes; the rest go to pyrol.unsupported
 │   ├── getTypeName.py    adapts the generated classes (keeps Python objects alive while C++
-│   │                     uses them, SimOpt value() dispatch, std::vector as a sequence) and
-│   │                     looks classes up by name
+│   │                     uses them, SimOpt value() dispatch) and looks classes up by name
 │   └── vectors/          NumPyVector
 ├── src/              hand-written C++
 │   ├── Binder_Input.hpp, PyROL_ETI.hpp, PyROL_Teuchos_ETI.hpp, PyROL_stream.hpp
@@ -25,6 +24,8 @@ pyrol/
 │   │                     dictionary-style access to Teuchos::ParameterList
 │   ├── PyROL_clone.hpp, PyROL_clone_shared.hpp
 │   │                     Vector::clone() for Python vectors (Teuchos::RCP / std::shared_ptr)
+│   ├── PyROL_vector.hpp  binds every std::vector type as a Python sequence that lists,
+│   │                     tuples and NumPy arrays convert to
 │   └── CMakeLists.txt    compiles these together with the generated sources
 ├── scripts/          build-time tools; nothing here is installed
 │   ├── PyROL_common.cfg  Binder configuration (what to wrap or skip, customizations)
