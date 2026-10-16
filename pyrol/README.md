@@ -12,7 +12,7 @@ and ROL's algorithms solve the problem.
 pip install rol-python
 ```
 
-Wheels are available for CPython 3.8 to 3.14 on Linux (x86_64) and macOS
+Wheels are available for CPython 3.9 to 3.14 on Linux (x86_64) and macOS
 (arm64), including free-threaded CPython 3.14.
 
 ## Example
