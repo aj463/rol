@@ -59,6 +59,10 @@ manually) has three jobs:
 3. `publish-pypi` uploads everything, but only if the "publish" box was
    checked when the workflow was started.
 
+A wheel holds only what PyROL needs at run time: the Python files, the
+module and the shared libraries of ROL and Teuchos, without headers or
+CMake package files (see the comments in `pyproject.toml`).
+
 The `Test Python interface` workflow (`.github/workflows/pyrol.yml`) runs on
 pull requests that change `pyrol/`. It builds PyROL from source for both
 `ROL_Ptr=Teuchos::RCP` (used for the wheels) and `ROL_Ptr=std::shared_ptr`,

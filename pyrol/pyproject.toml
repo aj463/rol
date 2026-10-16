@@ -32,6 +32,9 @@ build.verbose = true
 logging.level = "DEBUG"
 cmake.version = ">=3.23.0"
 wheel.install-dir = "pyrol"
+# Not needed at run time, and installed whatever the options below say: the
+# headers of ROL's Teuchos adapters, and TriBITS' files for BLAS and LAPACK.
+wheel.exclude = ["pyrol/include/**", "pyrol/lib/external_packages/**"]
 
 [tool.scikit-build.cmake.define]
 CMAKE_BUILD_TYPE = "RELEASE"
@@ -48,3 +51,11 @@ PYROL_ENABLE_BINDER = "OFF"
 PYROL_PIP_INSTALL = "ON"
 CMAKE_INSTALL_RPATH="$ORIGIN/lib64;$ORIGIN/lib;$ORIGIN;@loader_path/lib64;@loader_path/lib;@loader_path"
 CMAKE_INTERPROCEDURAL_OPTIMIZATION="OFF"
+# Install only what PyROL needs at run time: the shared libraries, but not
+# the headers, the CMake package files or TriBITS. A wheel cannot hold
+# symlinks, so unversioned library names avoid storing each library three
+# times (libfoo.dylib, libfoo.17.dylib and libfoo.17.3.0.dylib).
+Trilinos_INSTALL_LIBRARIES_AND_HEADERS = "OFF"
+Trilinos_ENABLE_INSTALL_CMAKE_CONFIG_FILES = "OFF"
+Trilinos_INSTALL_TriBITS = "OFF"
+CMAKE_PLATFORM_NO_VERSIONED_SONAME = "ON"
