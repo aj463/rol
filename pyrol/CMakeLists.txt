@@ -407,7 +407,9 @@ EXECUTE_PROCESS(COMMAND
   )
 MESSAGE(STATUS "pybind11 CMake path: ${pybind11_DIR}")
 
-find_package(Python3 REQUIRED Development.Module)
+# Interpreter lets FindPython match the interpreter's ABI; without it, CMake 4.4+
+# cannot find Development.Module for free-threaded Python (e.g. 3.14t).
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
 
 EXECUTE_PROCESS(COMMAND
