@@ -135,7 +135,9 @@ jobs:
           cd {project}/packages/rol/pyrol/test/algorithm &&
           python -m unittest test_typeU.py test_typeB.py &&
           cd ../bindings &&
-          python -m unittest test_parameterList.py test_vector.py
+          python -m unittest discover -p "test_*.py" &&
+          cd ../examples &&
+          python -m unittest test_examples.py
     - name: Set artifact name
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
