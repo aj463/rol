@@ -101,7 +101,7 @@ endfunction()
 ##################################################
 
 find_program(Python3_EXECUTABLE NAMES python3 python)
-MESSAGE("-- Python3_EXECUTABLE: ${Python3_EXECUTABLE}")
+MESSAGE(STATUS "Python3_EXECUTABLE: ${Python3_EXECUTABLE}")
 
 # Interpreter lets FindPython match the interpreter's ABI; without it, CMake 4.4+
 # cannot find Development.Module for free-threaded Python (e.g. 3.14t).
@@ -116,13 +116,6 @@ EXECUTE_PROCESS(COMMAND
   )
 MESSAGE(STATUS "pybind11 CMake path: ${pybind11_DIR}")
 find_package(pybind11 REQUIRED)
-
-EXECUTE_PROCESS(COMMAND
-  ${Python3_EXECUTABLE} -c "import mpi4py; print(mpi4py.get_include())"
-  OUTPUT_VARIABLE Mpi4Py_INCLUDE_DIR
-  ERROR_VARIABLE  Mpi4Py_INCLUDE_ERROR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
 
 # The pure-Python part of the package: top-level modules and subpackages.
 FILE(GLOB PyROLPyFiles ${CMAKE_CURRENT_SOURCE_DIR}/python/*.py)
@@ -242,21 +235,18 @@ SET(ROL_all_include_dirs
 ##################################################
 
 IF (PYROL_GENERATE_SRC)
-  MESSAGE("-- PyROL_BINDER_EXECUTABLE:")
   IF(NOT DEFINED PyROL_BINDER_EXECUTABLE)
     find_program(PyROL_BINDER_EXECUTABLE
         NAMES binder
         )
-    MESSAGE("  -- CMake has set: PyROL_BINDER_EXECUTABLE = ${PyROL_BINDER_EXECUTABLE}")
-  ELSE()
-    MESSAGE("  -- User has set: PyROL_BINDER_EXECUTABLE = ${PyROL_BINDER_EXECUTABLE}")
   ENDIF()
+  MESSAGE(STATUS "PyROL_BINDER_EXECUTABLE: ${PyROL_BINDER_EXECUTABLE}")
   file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/include_tmp)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include_tmp)
   file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/binder)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/binder)
 
-  MESSAGE("PTR_IMPL = ${PTR_IMPL}")
+  MESSAGE(STATUS "PTR_IMPL: ${PTR_IMPL}")
   IF( PTR_IMPL STREQUAL "std::shared_ptr")
     SET( BINDER_PTR_CFG "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_shared_ptr.cfg" )
   ELSE()
@@ -364,8 +354,6 @@ IF (PYROL_GENERATE_SRC)
   ENDIF()
   list(APPEND BINDER_OPTIONS -DNDEBUG)
 
-  message("BINDER_OPTIONS='${BINDER_OPTIONS}'")
-
   # Binder writes as many pyrol_<i>.cpp files as it needs; pre-create the
   # fixed set that src/CMakeLists.txt compiles, so unused ones stay empty.
   IF(NOT PYROL_USE_ONE_FILE)
@@ -382,7 +370,10 @@ IF (PYROL_GENERATE_SRC)
     OUTPUT_VARIABLE OUTPUT_BINDER
   )
 
+  # Binder's options and output are printed if it fails, and otherwise only
+  # with --log-level=VERBOSE.
   if(STATUS AND NOT STATUS EQUAL 0)
+    message("BINDER_OPTIONS='${BINDER_OPTIONS}'")
     message("${OUTPUT_BINDER}")
     if(PYROL_CMAKE_ERROR)
       message(FATAL_ERROR "BINDER FAILED: ${STATUS}")
@@ -390,8 +381,9 @@ IF (PYROL_GENERATE_SRC)
       message("BINDER FAILED: ${STATUS}")
     endif()
   else()
-    message(STATUS "BINDER SUCCESS:")
-    message("${OUTPUT_BINDER}")
+    message(STATUS "BINDER SUCCESS")
+    message(VERBOSE "BINDER_OPTIONS='${BINDER_OPTIONS}'")
+    message(VERBOSE "${OUTPUT_BINDER}")
   endif()
 
   IF(PYROL_UPDATE_GENERATED_SRC)

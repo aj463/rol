@@ -1,8 +1,5 @@
 FILE(GLOB PYROL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-MESSAGE("PYROL_SRC = ${PYROL_SRC}")
 FILE(COPY ${PYROL_SRC} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-MESSAGE("CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
 
 list(APPEND PYROL_SRC ${CMAKE_CURRENT_BINARY_DIR}/../binder/pyrol.cpp)
 
@@ -28,11 +25,9 @@ IF(NOT PYROL_USE_ONE_FILE)
   endif()
 ENDIF()
 
-MESSAGE("PYROL_SRC with Binder = ${PYROL_SRC}")
-
 pybind11_add_module(pyrol ${PYROL_SRC})
-target_include_directories(pyrol PUBLIC ${Mpi4Py_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../binder "$<BUILD_INTERFACE:${ROL_all_include_dirs}>")
-target_compile_features(pyrol PUBLIC cxx_std_14)
+target_include_directories(pyrol PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/../binder "$<BUILD_INTERFACE:${ROL_all_include_dirs}>")
+target_compile_features(pyrol PUBLIC cxx_std_17)
 
 foreach(depPkg IN LISTS ROL_LIB_ENABLED_DEPENDENCIES)
     target_link_libraries(pyrol PUBLIC ${depPkg}::all_libs)
