@@ -12,7 +12,7 @@
 
 #include <iostream>
 #include <fstream>
-#include "Teuchos_RCP.hpp"
+#include <ROL_Ptr.hpp>
 
 namespace ROL {
 
@@ -26,9 +26,9 @@ namespace ROL {
     outdata.close();
   }
 
-  Teuchos::RCP<std::ostream> getCout() {
-    Teuchos::RCP<std::ostream> out = Teuchos::rcp(&std::cout, false);
-    return out;
+  // A non-owning pointer to std::cout.
+  ROL::Ptr<std::ostream> getCout() {
+    return ROL::makePtrFromRef<std::ostream>(std::cout);
   }
 }
 
