@@ -2,16 +2,28 @@ name: Build Python interface
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Upload the sdist and wheels to PyPI"
+        type: boolean
+        default: false
   # push
+
+env:
+  # Pinned so that sdists are reproducible; bump these deliberately.
+  PYBIND11_VERSION: "2.13.6"  # keep in sync with pyrol/pyproject.toml
+  BINDER_COMMIT: 93efb505172ce0ef34faa1f69a8e8f2b7455ce18
 
 jobs:
 
   build-sdist:
-    runs-on: ubuntu-latest
+    # Binder is built against LLVM 15 from apt; with LLVM 18, Binder emits
+    # includes of *_Def.hpp headers that break the build.
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: "3.x"
     - name: Install packages
@@ -21,10 +33,11 @@ jobs:
         # see https://cppbinder.readthedocs.io/en/latest/install.html#id1
         sudo apt-get install -y clang-15 llvm-15 libclang-15-dev llvm-15-dev
         python3 -m pip install build
-        python3 -m pip install pybind11@git+https://github.com/pybind/pybind11.git@c6c9a9e59b2b64393de0432aa6867ed27367912a
+        python3 -m pip install "pybind11==${PYBIND11_VERSION}"
     - name: Build Binder
       run: |
         git clone https://github.com/RosettaCommons/binder.git ../binder
+        git -C ../binder checkout "${BINDER_COMMIT}"
         cmake -G Ninja \
               -D LLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm \
               -D Clang_DIR=/usr/lib/llvm-15/lib/cmake/clang \
@@ -80,22 +93,22 @@ jobs:
       run: |
         python3 -m build --sdist ../pyrol
     - name: Upload source distribution as an artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: sdist
         path: /home/runner/work/rol/pyrol/dist/*.tar.gz
 
   build-wheels:
-    # if: github.event_name == 'release' && github.event.action == 'published'
     needs: build-sdist
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-15]
     runs-on: ${{matrix.os}}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Download source distribution artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: sdist
     - name: Store source distribution name
@@ -104,11 +117,11 @@ jobs:
         echo $SDIST_NAME
         echo "SDIST_NAME=${SDIST_NAME}" >> $GITHUB_ENV
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: "3.x"
     - name: Build wheels (Ubuntu and Mac)
-      uses: pypa/cibuildwheel@v3.1.4
+      uses: pypa/cibuildwheel@v3.4.1
       with:
         output-dir: dist
         package-dir: ${{ env.SDIST_NAME }}
@@ -118,8 +131,11 @@ jobs:
         CIBW_BUILD_VERBOSITY: 1
         CIBW_BEFORE_ALL_LINUX: |
           yum install -y openblas-devel ninja-build
-        CIBW_TEST_COMMAND: 
-          cd {project}/packages/rol/pyrol/test/algorithm && python -m unittest test_typeU.py
+        CIBW_TEST_COMMAND: >-
+          cd {project}/packages/rol/pyrol/test/algorithm &&
+          python -m unittest test_typeU.py test_typeB.py &&
+          cd ../bindings &&
+          python -m unittest test_parameterList.py test_vector.py
     - name: Set artifact name
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
@@ -128,13 +144,13 @@ jobs:
           echo "ARTIFACT_NAME=wheels-macos" >> $GITHUB_ENV
         fi
     - name: Upload wheels as artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.ARTIFACT_NAME }}
         path: dist/*
-  
+
   publish-pypi:
-    # if: github.event_name == 'release' && github.event.action == 'published'
+    if: inputs.publish
     needs:
     - build-sdist
     - build-wheels
@@ -146,17 +162,17 @@ jobs:
       id-token: write
     steps:
     - name: Download the source distribution
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: sdist
         path: dist/
     - name: Download the Linux wheels
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: wheels-linux
         path: dist/
     - name: Download the MacOS wheels
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: wheels-macos
         path: dist/
