@@ -9,7 +9,9 @@ def version():
     return 'PyROL version: ' + __version__
 
 
-def getWrapper(classname):
+# getTypeName is bound as a default argument because it is deleted from this
+# module's namespace at the end of this file.
+def getWrapper(classname, getTypeName=getTypeName):
     def wrapper(scalarType=getDefaultScalarType()):
         actualClass = getTypeName(classname, scalarType)
         return actualClass

@@ -69,6 +69,17 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
 			const std::string      & name,
 			py::object             value);
 
+inline void setPythonParameterOrThrow(Teuchos::RCP<Teuchos::ParameterList> plist,
+                                      const std::string & name,
+                                      py::object value)
+{
+  if (!setPythonParameter(plist, name, value))
+    throw py::type_error("Cannot store a value of type '" +
+                         py::type::of(value).attr("__name__").cast<std::string>() +
+                         "' in ParameterList entry '" + name +
+                         "'; supported types are bool, int, float, str and ParameterList");
+}
+
 
 template <typename T>
 bool setPythonParameterArray(Teuchos::RCP<Teuchos::ParameterList> plist,
@@ -89,15 +100,15 @@ template <typename T>
 void def_ParameterList_member_functions(T cl) {
   cl.def("__setitem__", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, Teuchos::ParameterList value) { m->set(name,value);  });
   cl.def("set", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, Teuchos::ParameterList value) { m->set(name,value);  });
-  cl.def("sublist", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name) { if (m->isSublist(name)) { return pybind11::cast(sublist(m, name)); } return pybind11::cast("Invalid sublist name"); }, pybind11::return_value_policy::reference);
-  cl.def("__setitem__", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, pybind11::object value) { setPythonParameter(m,name,value);  });
+  cl.def("sublist", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name) { if (!m->isSublist(name)) { throw py::key_error(name); } return pybind11::cast(sublist(m, name)); }, pybind11::return_value_policy::reference);
+  cl.def("__setitem__", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, pybind11::object value) { setPythonParameterOrThrow(m,name,value);  });
   cl.def("__getitem__", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name) {
     // Sublist
     if (m->isSublist(name))
       return py::cast(Teuchos::sublist(m, name));
     return getPythonParameter(m,name);
   });
-  cl.def("set", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, pybind11::object value) { setPythonParameter(m,name,value);  });
+  cl.def("set", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name, pybind11::object value) { setPythonParameterOrThrow(m,name,value);  });
   cl.def("get", [](Teuchos::RCP<Teuchos::ParameterList> &m, const std::string &name) {
     // Sublist
     if (m->isSublist(name))
