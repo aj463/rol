@@ -16,6 +16,9 @@ class TestExports(unittest.TestCase):
                 forScalar = getattr(pyrol, name + "_forScalar")
                 self.assertIs(forScalar(), cls)
                 self.assertIs(forScalar("double"), cls)
+                self.assertEqual(cls.__name__, name + "_double_t")
+                with self.assertRaises(ValueError):
+                    forScalar("float")
 
     def test_supported_functions(self):
         for name in ["getCout", "getParametersFromXmlFile", "getParametersFromYamlFile"]:

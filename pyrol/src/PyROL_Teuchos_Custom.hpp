@@ -21,17 +21,6 @@
 namespace py = pybind11;
 
 template<typename T>
-Teuchos::Array< T > copyNumPyToTeuchosArray(pybind11::array_t<T> array) {
-
-    auto np_array = array.template mutable_unchecked<1>();
-    int size = array.shape(0);
-    Teuchos::Array< T > av(size);
-    for (int i=0; i < size; ++i)
-      av[i] = np_array(i);
-    return av;
-}
-
-template<typename T>
 pybind11::array_t<T> copyTeuchosArrayToNumPy(Teuchos::Array< T > & tArray) {
 
     pybind11::array_t<T> array(tArray.size());
@@ -58,16 +47,6 @@ inline void setPythonParameterOrThrow(Teuchos::ParameterList & plist,
                          "'; supported types are bool, int, float, str and ParameterList");
 }
 
-
-template <typename T>
-bool setPythonParameterArray(Teuchos::ParameterList & plist,
-			const std::string      & name,
-			pybind11::array_t< T >   value)
-{
-  auto tArray = copyNumPyToTeuchosArray(value);
-  plist.set(name, tArray);
-  return true;
-}
 
 // Implementation based on:
 // https://github.com/trilinos/Trilinos/tree/master/packages/PyTrilinos/src/PyTrilinos_Teuchos_Util.cpp

@@ -47,14 +47,7 @@ bool setPythonParameter(Teuchos::ParameterList & plist,
     plist.set(name, h.cast<std::string>());
   }
 
-  // None object not allowed: this is a python type not usable by
-  // Trilinos solver packages.
-  else if (value.ptr () == Py_None)
-  {
-    return false;
-  }
-
-  // All other value types are unsupported
+  // All other value types, None included, are unsupported
   else
   {
     return false;

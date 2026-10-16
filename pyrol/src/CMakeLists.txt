@@ -1,5 +1,4 @@
 FILE(GLOB PYROL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-FILE(COPY ${PYROL_SRC} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # The generated sources: pyrol.cpp alone with PYROL_BINDER_USE_ONE_FILE, and
 # otherwise the files Binder lists in pyrol.sources.
@@ -27,5 +26,5 @@ INSTALL(TARGETS pyrol
 
 add_custom_command(TARGET pyrol POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/pyrol.so ${CMAKE_CURRENT_BINARY_DIR}/../pyrol/.
-    COMMENT "Copy ${PROJECT_BINARY_DIR}/src/pyrol.so"
+    COMMENT "Copy pyrol.so into the build tree's pyrol package"
 )

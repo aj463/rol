@@ -28,7 +28,6 @@ classifiers = [
 [tool.scikit-build]
 wheel.expand-macos-universal-tags = true
 build.verbose = true
-logging.level = "DEBUG"
 cmake.version = ">=3.23.0"
 wheel.install-dir = "pyrol"
 # Not needed at run time, and installed whatever the options below say:

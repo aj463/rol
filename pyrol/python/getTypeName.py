@@ -107,6 +107,10 @@ def withTrackingConstructor(cls_name, cls):
         if name.startswith('add') and callable(getattr(cls, name)):
             setattr(newCls, name, tracking_method(getattr(cls, name)))
 
+    # Show the wrapper under the wrapped class's name, e.g. in repr and help().
+    for attr in ('__name__', '__qualname__', '__module__', '__doc__'):
+        setattr(newCls, attr, getattr(cls, attr))
+
     return newCls
 
 
@@ -129,18 +133,12 @@ def getDefaultScalarType():
     return "double"
 
 
-def _find_class(prefix, class_name):
-    """Return the first class in ROL_classes whose lowercase name starts with
-    prefix; otherwise warn about class_name and return None."""
-    for name, cls in ROL_classes:
-        if name.lower().startswith(prefix):
-            return cls
-    print('Warning: Unknown type "{}", the function returns None.'.format(class_name))
-    return None
-
-
 def getTypeName(class_name, scalar_type=getDefaultScalarType()):
     """Return the ROL class for a class name and scalar type, e.g.
     getTypeName('Objective') -> Objective_double_t (case-insensitive)."""
-    return _find_class(class_name.lower() + "_" + scalar_type.lower(), class_name)
+    prefix = class_name.lower() + "_" + scalar_type.lower()
+    for name, cls in ROL_classes:
+        if name.lower().startswith(prefix):
+            return cls
+    raise ValueError('No ROL class "{}" for scalar type "{}"'.format(class_name, scalar_type))
 
