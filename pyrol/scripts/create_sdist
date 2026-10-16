@@ -17,13 +17,13 @@ GCC_PREFIX=$(spack location -i gcc)
 
 ## Other prerequisites:
 
-# * Binder (after the changes on its smart_holder branch)
+# * Binder
 if [ ! command -v binder &> /dev/null ]
 then
   echo "Binder not available!"
 fi
 
-# * pybind11 built from its smart_holder branch.
+# * pybind11 (the version pinned in pyproject.toml).
 # * pipx
 
 ##
