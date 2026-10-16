@@ -11,7 +11,7 @@ on:
 
 env:
   # Pinned so that sdists are reproducible; bump these deliberately.
-  PYBIND11_VERSION: "2.13.6"  # keep in sync with pyrol/pyproject.toml
+  PYBIND11_VERSION: "3.1.0"  # keep in sync with pyrol/pyproject.toml
   BINDER_COMMIT: 93efb505172ce0ef34faa1f69a8e8f2b7455ce18
 
 jobs:
