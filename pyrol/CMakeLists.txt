@@ -32,8 +32,6 @@ TRIBITS_ADD_OPTION_AND_DEFINE(PYROL_BINDER_USE_ONE_FILE
   "Enable the use of one file by Binder."
   OFF )
 
-SET(PYROL_BINDER_NUM_FILES "100" CACHE STRING "Number of files to use when PYROL_USE_ONE_FILE=OFF.")
-
 TRIBITS_ADD_OPTION_AND_DEFINE(PYROL_BINDER_CMAKE_ERROR
   PYROL_CMAKE_ERROR
   "Stop the configuration if Binder fails."
@@ -353,16 +351,6 @@ IF (PYROL_GENERATE_SRC)
     list(APPEND BINDER_OPTIONS --gcc-toolchain=${PyROL_BINDER_GCC_TOOLCHAIN})
   ENDIF()
   list(APPEND BINDER_OPTIONS -DNDEBUG)
-
-  # Binder writes as many pyrol_<i>.cpp files as it needs; pre-create the
-  # fixed set that src/CMakeLists.txt compiles, so unused ones stay empty.
-  IF(NOT PYROL_USE_ONE_FILE)
-    MATH(EXPR NUMBER_FILE "${PYROL_BINDER_NUM_FILES}")
-
-    foreach(index RANGE 0 ${NUMBER_FILE})
-      file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binder/pyrol_${index}.cpp "")
-    endforeach()
-  ENDIF()
 
   EXECUTE_PROCESS(COMMAND
     ${PyROL_BINDER_EXECUTABLE} ${BINDER_OPTIONS}
