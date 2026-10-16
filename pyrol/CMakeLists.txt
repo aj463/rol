@@ -4,8 +4,13 @@ IF(NOT BUILD_SHARED_LIBS)
   MESSAGE(FATAL_ERROR "PyROL can only be built with shared libraries. Building of shared libraries is currently set to OFF. To enable shared libraries please set the cache variable \"BUILD_SHARED_LIBS\" to ON")
 ENDIF()
 
-# Set the package version number
-SET(PyROL_VERSION ${Trilinos_VERSION})
+# Set the package version number: the version of the Python package when pip
+# builds PyROL (scikit-build-core), and Trilinos' version otherwise.
+IF(SKBUILD_PROJECT_VERSION_FULL)
+  SET(PyROL_VERSION ${SKBUILD_PROJECT_VERSION_FULL})
+ELSE()
+  SET(PyROL_VERSION ${Trilinos_VERSION})
+ENDIF()
 
 TRIBITS_ADD_OPTION_AND_DEFINE(PYROL_PIP_INSTALL
   PYROL_SCIKIT
@@ -123,6 +128,8 @@ EXECUTE_PROCESS(COMMAND
 FILE(GLOB PyROLPyFiles ${CMAKE_CURRENT_SOURCE_DIR}/python/*.py)
 SUBDIRLIST(PyROL_SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR}/python)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pyrol)
+# pyrol.__version__
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/pyrol/_version.py "__version__ = '${PyROL_VERSION}'\n")
 
 ##################################################
 # Include directories                            #
@@ -421,6 +428,7 @@ MESSAGE(STATUS "PyROL installation path: ${PyROL_INSTALL_DIR_RELATIVE}")
 
 INSTALL(FILES
   ${PyROLPyFiles}
+  ${CMAKE_CURRENT_BINARY_DIR}/pyrol/_version.py
   DESTINATION ${PyROL_INSTALL_DIR})
 
 FOREACH(PyROL_subdir ${PyROL_SUBDIRS})

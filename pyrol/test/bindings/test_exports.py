@@ -1,4 +1,6 @@
+import importlib.metadata
 import unittest
+from pathlib import Path
 
 import pyrol
 import pyrol.unsupported
@@ -33,7 +35,17 @@ class TestExports(unittest.TestCase):
         self.assertIn("NumPyVector", namespace)
 
     def test_version(self):
-        self.assertTrue(pyrol.version().startswith("PyROL version"))
+        self.assertEqual(pyrol.version(), "PyROL version: " + pyrol.__version__)
+        # Installed with pip, the version is the package's. Built with
+        # Trilinos, there is no package metadata next to pyrol, and the
+        # version is Trilinos'.
+        site = str(Path(pyrol.__file__).resolve().parents[1])
+        for dist in importlib.metadata.distributions(path=[site]):
+            if dist.metadata["Name"] == "rol-python":
+                self.assertEqual(pyrol.__version__, dist.version)
+                break
+        else:
+            self.assertRegex(pyrol.__version__, r"^\d+\.\d+")
 
 
 if __name__ == "__main__":
