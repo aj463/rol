@@ -8,6 +8,7 @@ references a Python-defined Objective or Vector could be garbage collected
 while ROL still uses it.
 """
 from pyrol.pyrol import ROL
+import functools
 import inspect
 import sys
 
@@ -59,10 +60,34 @@ def _decorator34(value_method):
     return value
 
 
+# Methods whose results C++ keeps using after a Python override returns:
+# dual() returns a reference, and the Ptr returned by basis() does not own
+# the Python object. Overrides are wrapped to keep their last result on self,
+# the way ROL's C++ vectors hold the objects they return.
+_KEEP_RESULT_ALIVE = {'dual': '_pyrol_dual', 'basis': '_pyrol_basis'}
+
+
+def _keep_result_alive(method, attr):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        result = method(self, *args, **kwargs)
+        if result is not self:
+            setattr(self, attr, result)
+        return result
+    return wrapper
+
+
 def withTrackingConstructor(cls_name, cls):
     """Return a subclass of cls whose instances keep their PyROL arguments
     alive (see the module docstring)."""
     class newCls(cls):
+        def __init_subclass__(subclass, **kwargs):
+            super().__init_subclass__(**kwargs)
+            for name, attr in _KEEP_RESULT_ALIVE.items():
+                method = subclass.__dict__.get(name)
+                if inspect.isfunction(method):
+                    setattr(subclass, name, _keep_result_alive(method, attr))
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
@@ -95,6 +120,38 @@ for cls_name, cls_obj in inspect.getmembers(sys.modules['pyrol.pyrol.ROL']):
 ROL_classes = [(cls_name, cls_obj)
                for cls_name, cls_obj in inspect.getmembers(sys.modules['pyrol.pyrol.ROL'])
                if inspect.isclass(cls_obj)]
+
+
+def _add_sequence_protocol(cls):
+    """Make a Binder-generated std::vector class a proper Python sequence.
+
+    Binder maps __getitem__ to the unchecked operator[] and defines neither
+    __len__ nor __iter__, so iterating over a vector returned by ROL (e.g.
+    the table returned by checkGradient) read past its end.
+    """
+    def __getitem__(self, index):
+        size = self.size()
+        if isinstance(index, slice):
+            return [self.at(i) for i in range(*index.indices(size))]
+        if index < 0:
+            index += size
+        if not 0 <= index < size:
+            raise IndexError("vector index out of range")
+        return self.at(index)
+
+    cls.__len__ = lambda self: self.size()
+    cls.__getitem__ = __getitem__
+    cls.__iter__ = lambda self: (self.at(i) for i in range(self.size()))
+
+
+def _add_sequence_protocols():
+    from pyrol.pyrol import std
+    for name, cls in vars(std).items():
+        if name.startswith('vector_') and inspect.isclass(cls) and hasattr(cls, 'at'):
+            _add_sequence_protocol(cls)
+
+
+_add_sequence_protocols()
 
 
 def getDefaultScalarType():
