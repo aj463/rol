@@ -33,7 +33,7 @@ pyrol/
 │   │                     the settings for each ROL_Ptr, appended to the common file
 │   ├── gather_includes.py
 │   │                     prepares Binder's input
-│   └── build_sdist.sh    builds an sdist locally, the way CI does
+│   └── build_sdist.sh    builds an sdist, locally and in CI
 ├── test/             unittest suites, registered with CTest
 │   ├── algorithm/        ROL's algorithms on small test problems
 │   ├── bindings/         the bindings and the Python layer
@@ -91,8 +91,8 @@ ctest --test-dir build -R ROL_PYTHON
 
 Add `-D ROL_Ptr=std::shared_ptr` for the other pointer type. Without
 `PYROL_ENABLE_BINDER`, the build expects previously generated sources in
-`pyrol/binder`. `scripts/build_sdist.sh` builds an sdist from a checkout, like
-CI; `pip wheel <sdist>` then builds a wheel from it.
+`pyrol/binder`. `scripts/build_sdist.sh`, which CI also runs, builds an sdist
+from a checkout; `pip wheel <sdist>` then builds a wheel from it.
 
 ## Binder
 

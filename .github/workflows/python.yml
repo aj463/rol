@@ -47,53 +47,15 @@ jobs:
         cmake --build ../binder-build
         ctest --test-dir ../binder-build --output-on-failure
         cmake --install ../binder-build
-    - name: Clone Trilinos
-      run: git clone https://github.com/trilinos/Trilinos.git --depth 1 ../trilinos
-    - name: Copy ROL
-      run: rsync -ar --delete . ../trilinos/packages/rol
-    - name: Write version
-      run: |
-        cp pyrol/pyproject.toml ../trilinos/
-        export TZ='America/Denver'
-        # VERSION="$(date +%Y.%m.%d).dev$(date +%H%M)$(git rev-parse --abbrev-ref HEAD)$(git rev-parse --short HEAD)"
-        VERSION="$(date +%Y.%m.%d).dev$(date +%H%M)"
-        sed -i "s/version = \"VERSION\"/version = \"${VERSION}\"/" ../trilinos/pyproject.toml
-    - name: Configure (requires running Binder)
-      run: |
-        cmake -G Ninja \
-              -D CMAKE_BUILD_TYPE:STRING=RELEASE \
-              -D CPACK_SOURCE_IGNORE_FILES="/packages/rol/example;/packages/rol/test;/packages/rol/tutorial;/packages/teuchos/core/test;/packages/teuchos/core/example;/packages/teuchos/numerics/test;/packages/teuchos/numerics/example;/packages/teuchos/parameterlist/test;/packages/teuchos/parameterlist/example;/packages/teuchos/parser/test;/packages/teuchos/parser/example;/packages/teuchos/remainder/test;/packages/teuchos/remainder/example;/packages/teuchos/comm/test;/packages/teuchos/comm/example" \
-              -D BUILD_SHARED_LIBS:BOOL=ON \
-              -D ROL_ENABLE_EXAMPLES:BOOL=OFF \
-              -D ROL_ENABLE_PYROL:BOOL=ON \
-              -D ROL_ENABLE_TESTS:BOOL=OFF \
-              -D PYROL_ENABLE_BINDER:BOOL=ON \
-              -D PYROL_ENABLE_BINDER_UPDATE:BOOL=ON \
-              -D Trilinos_CPACK_SOURCE_GENERATOR="TGZ" \
-              -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES:BOOL=OFF \
-              -D Trilinos_ENABLE_CPACK_PACKAGING=ON \
-              -D Trilinos_ENABLE_EXAMPLES:BOOL=OFF \
-              -D Trilinos_ENABLE_Fortran:BOOL=OFF \
-              -D Trilinos_ENABLE_ROL:BOOL=ON \
-              -D Trilinos_ENABLE_TESTS:BOOL=OFF \
-              -B ../trilinos-build \
-              ../trilinos
-    - name: Create reduced tarball (ROL + Binder files + Teuchos)
-      run: |
-        cmake --build ../trilinos-build --target package_source
-    - name: Unpack reduced tarball
-      run: |
-        tar -zxf `find ../trilinos-build -name "*-Source.tar.gz" -print -quit`
-        mv `find . -name "trilinos-*-Source" -print -quit` ../pyrol
-        rm ../pyrol/packages/framework/asan_assets/dummy_dlclose.so
-    - name: Create source distribution from upacked tarball
-      run: |
-        python3 -m build --sdist ../pyrol
+    - name: Build the source distribution (runs Binder)
+      # The script developers use too: it clones the latest Trilinos, runs
+      # Binder through its configuration and packages the reduced tree.
+      run: pyrol/scripts/build_sdist.sh -w "$RUNNER_TEMP/sdist"
     - name: Upload source distribution as an artifact
       uses: actions/upload-artifact@v7
       with:
         name: sdist
-        path: /home/runner/work/rol/pyrol/dist/*.tar.gz
+        path: ${{ runner.temp }}/sdist/dist/*.tar.gz
 
   build-wheels:
     needs: build-sdist

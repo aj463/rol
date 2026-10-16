@@ -1,8 +1,8 @@
 #!/bin/bash
-# Build a PyROL source distribution (sdist) the way the build-sdist job of
-# .github/workflows/python.yml does: run Binder through the Trilinos
-# configuration, package ROL, Teuchos and the generated sources with CPack,
-# and turn that into an sdist. Works on Linux and macOS.
+# Build a PyROL source distribution (sdist), as the build-sdist job of
+# .github/workflows/python.yml does with this script: run Binder through the
+# Trilinos configuration, package ROL, Teuchos and the generated sources with
+# CPack, and turn that into an sdist. Works on Linux and macOS.
 #
 # Usage: pyrol/scripts/build_sdist.sh [options]
 #   -w DIR     work directory, outside this checkout; the sdist is written to
@@ -62,7 +62,7 @@ if inside_checkout "$trilinos"; then
 fi
 rsync -a --delete --exclude=.git "$rol/" "$trilinos/packages/rol/"
 
-# The package version is the date and time, as in CI.
+# The package version is the date and time in Denver.
 cp "$rol/pyrol/pyproject.toml" "$trilinos/pyproject.toml"
 version="$(TZ=America/Denver date +%Y.%m.%d).dev$(TZ=America/Denver date +%H%M)"
 sed -i.bak "s/version = \"VERSION\"/version = \"$version\"/" "$trilinos/pyproject.toml"
