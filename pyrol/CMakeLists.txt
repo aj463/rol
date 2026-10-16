@@ -251,10 +251,16 @@ IF (PYROL_GENERATE_SRC)
 
   MESSAGE("PTR_IMPL = ${PTR_IMPL}")
   IF( PTR_IMPL STREQUAL "std::shared_ptr")
-    SET( BINDER_CFG "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_shared_ptr.cfg" )
+    SET( BINDER_PTR_CFG "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_shared_ptr.cfg" )
   ELSE()
-    SET( BINDER_CFG "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_RCP.cfg" )
+    SET( BINDER_PTR_CFG "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_RCP.cfg" )
   ENDIF()
+  # Binder reads a single configuration file: the common settings followed by
+  # those for the pointer type.
+  SET( BINDER_CFG "${CMAKE_CURRENT_BINARY_DIR}/PyROL.cfg" )
+  FILE(READ "${CMAKE_CURRENT_SOURCE_DIR}/scripts/PyROL_common.cfg" binder_common_cfg)
+  FILE(READ "${BINDER_PTR_CFG}" binder_ptr_cfg)
+  FILE(WRITE "${BINDER_CFG}" "${binder_common_cfg}\n${binder_ptr_cfg}")
 
   set(binder_include_name "${CMAKE_CURRENT_BINARY_DIR}/trilinos_includes.hpp")
   set(all_header_with_dir_list "${CMAKE_CURRENT_BINARY_DIR}/list_with_dir.txt")

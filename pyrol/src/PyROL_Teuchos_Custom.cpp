@@ -11,7 +11,7 @@
 
 // Implementation based on:
 // https://github.com/trilinos/Trilinos/tree/master/packages/PyTrilinos/src/PyTrilinos_Teuchos_Util.cpp
-bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
+bool setPythonParameter(Teuchos::ParameterList & plist,
 			const std::string      & name,
 			py::object             value)
 {
@@ -20,31 +20,31 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
   // Boolean values
   if (PyBool_Check(value.ptr ()))
   {
-    plist->set(name, h.cast<bool>());
+    plist.set(name, h.cast<bool>());
   }
 
   // Integer values
   else if (PyLong_Check(value.ptr ()))
   {
-    plist->set(name, h.cast<int>());
+    plist.set(name, h.cast<int>());
   }
 
   // Floating point values
   else if (PyFloat_Check(value.ptr ()))
   {
-    plist->set(name, h.cast<double>());
+    plist.set(name, h.cast<double>());
   }
 
   // Unicode values (stored as UTF-8)
   else if (PyUnicode_Check(value.ptr ()))
   {
-    plist->set(name, h.cast<std::string>());
+    plist.set(name, h.cast<std::string>());
   }
 
   // Bytes values (stored as strings)
   else if (PyBytes_Check(value.ptr ()))
   {
-    plist->set(name, h.cast<std::string>());
+    plist.set(name, h.cast<std::string>());
   }
 
   // None object not allowed: this is a python type not usable by
@@ -67,13 +67,13 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
 
 // Implementation based on:
 // https://github.com/trilinos/Trilinos/tree/master/packages/PyTrilinos/src/PyTrilinos_Teuchos_Util.cpp
-py::object getPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
+py::object getPythonParameter(const Teuchos::ParameterList & plist,
 			      const std::string            & name)
 {
   // Get the parameter entry.  I now deal with the Teuchos::ParameterEntry
   // objects so that I can query the Teuchos::ParameterList without setting
   // the "used" flag to true.
-  const Teuchos::ParameterEntry * entry = plist->getEntryPtr(name);
+  const Teuchos::ParameterEntry * entry = plist.getEntryPtr(name);
   if (entry == nullptr)
     throw py::key_error(name);
   // Boolean parameter values
