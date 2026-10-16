@@ -366,8 +366,11 @@ ENDFOREACH()
 
 ADD_SUBDIRECTORY( src )
 
-# Lay out the package in the build tree too, so that tests can import it.
-FILE(COPY ${PyROLPyFiles} ${PyROL_SUBDIRS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/pyrol)
+# Lay out the package in the build tree too, so that tests can import it. The
+# Python files are copied whenever pyrol is built, so that edits reach the tests.
+ADD_CUSTOM_TARGET(pyrol_python_files
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/python ${CMAKE_CURRENT_BINARY_DIR}/pyrol)
+ADD_DEPENDENCIES(pyrol pyrol_python_files)
 
 SET(PyROL_PYTHONPATH "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}")
 
