@@ -82,5 +82,7 @@ void def_ParameterList_member_functions(T cl) {
       return py::cast(sublistPtr(m, name));
     return getPythonParameter(*m,name);
   });
+  cl.def("__contains__", [](Ptr &m, const std::string &name) { return m->isParameter(name); });
+  cl.def("__len__", [](Ptr &m) { return m->numParams(); });
 }
 #endif // PYROL_TEUCHOS_CUSTOM

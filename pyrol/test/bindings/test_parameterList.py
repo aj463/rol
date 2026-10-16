@@ -46,6 +46,15 @@ class TestParameterList(unittest.TestCase):
         with self.assertRaises(KeyError):
             p.sublist("missing")
 
+    def test_contains_and_len(self):
+        p = ParameterList()
+        p["Step"] = ParameterList()
+        p["Iteration Limit"] = 10
+        self.assertIn("Step", p)
+        self.assertIn("Iteration Limit", p)
+        self.assertNotIn("missing", p)
+        self.assertEqual(len(p), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
