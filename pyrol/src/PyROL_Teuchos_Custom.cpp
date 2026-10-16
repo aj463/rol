@@ -9,31 +9,6 @@
 
 #include <PyROL_Teuchos_Custom.hpp>
 
-#if PY_VERSION_HEX >= 0x03000000
-
-#define PyClass_Check(obj) PyObject_IsInstance(obj, (PyObject *)&PyType_Type)
-#define PyInt_Check(x) PyLong_Check(x)
-#define PyInt_AsLong(x) PyLong_AsLong(x)
-#define PyInt_FromLong(x) PyLong_FromLong(x)
-#define PyInt_FromSize_t(x) PyLong_FromSize_t(x)
-#define PyString_Check(name) PyBytes_Check(name)
-#define PyString_FromString(x) PyUnicode_FromString(x)
-#define PyString_FromStringAndSize(x,s) PyUnicode_FromStringAndSize(x,s)
-#define PyString_Format(fmt, args)  PyUnicode_Format(fmt, args)
-#define PyString_AsString(str) PyBytes_AsString(str)
-#define PyString_Size(str) PyBytes_Size(str)    
-#define PyString_InternFromString(key) PyUnicode_InternFromString(key)
-#define Py_TPFLAGS_HAVE_CLASS Py_TPFLAGS_BASETYPE
-#define PyString_AS_STRING(x) PyUnicode_AS_STRING(x)
-#define PyObject_Compare(x, y) (1-PyObject_RichCompareBool(x, y, Py_EQ))
-#define _PyLong_FromSsize_t(x) PyLong_FromSsize_t(x)
-#define convertPyStringToChar(pyobj) PyBytes_AsString(PyUnicode_AsASCIIString(pyobj))
-#else
-#define convertPyStringToChar(pyobj) PyString_AsString(pyobj)
-#endif
-
-namespace py = pybind11;
-
 // Implementation based on:
 // https://github.com/trilinos/Trilinos/tree/master/packages/PyTrilinos/src/PyTrilinos_Teuchos_Util.cpp
 bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
@@ -49,7 +24,7 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
   }
 
   // Integer values
-  else if (PyInt_Check(value.ptr ()))
+  else if (PyLong_Check(value.ptr ()))
   {
     plist->set(name, h.cast<int>());
   }
@@ -66,8 +41,8 @@ bool setPythonParameter(Teuchos::RCP<Teuchos::ParameterList> plist,
     plist->set(name, h.cast<std::string>());
   }
 
-  // String values
-  else if (PyString_Check(value.ptr ()))
+  // Bytes values (stored as strings)
+  else if (PyBytes_Check(value.ptr ()))
   {
     plist->set(name, h.cast<std::string>());
   }
