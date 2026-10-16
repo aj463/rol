@@ -13,19 +13,20 @@ import inspect
 import sys
 
 # All wrapped classes; arguments of these types are kept alive by track().
-trackedTypes = []
+trackedTypes = set()
 
 
 def track(self, *args, **kwargs):
     """Keep references on self to the PyROL objects among the arguments."""
-    tracked = tuple(trackedTypes)
     for arg in (*args, *kwargs.values()):
-        if isinstance(arg, tracked):
+        # isinstance(arg, tuple(trackedTypes)), without testing every class.
+        if not trackedTypes.isdisjoint(type(arg).__mro__):
             self._tracked_constructor_args.append(arg)
 
 
 def tracking_method(cls_method):
     """Wrap a method so that self keeps references to its PyROL arguments."""
+    @functools.wraps(cls_method)
     def new_method(self, *args, **kwargs):
         track(self, *args, **kwargs)
         return cls_method(self, *args, **kwargs)
@@ -94,15 +95,15 @@ def withTrackingConstructor(cls_name, cls):
             self._tracked_constructor_args = []
             track(self, *args, **kwargs)
 
-            # Also track the arguments of the add* methods, e.g. Problem.addConstraint.
-            for name in dir(cls):
-                if name.startswith('add') and callable(getattr(cls, name)):
-                    setattr(newCls, name, tracking_method(getattr(cls, name)))
-
             if cls_name.startswith('Objective_SimOpt'):
                 self.value = _decorator23(self.value)
             elif cls_name.startswith('Constraint_SimOpt'):
                 self.value = _decorator34(self.value)
+
+    # Also track the arguments of the add* methods, e.g. Problem.addConstraint.
+    for name in dir(cls):
+        if name.startswith('add') and callable(getattr(cls, name)):
+            setattr(newCls, name, tracking_method(getattr(cls, name)))
 
     return newCls
 
@@ -112,7 +113,7 @@ ROL_members = {}
 for cls_name, cls_obj in inspect.getmembers(sys.modules['pyrol.pyrol.ROL']):
     if inspect.isclass(cls_obj):
         cls_obj = withTrackingConstructor(cls_name, cls_obj)
-        trackedTypes.append(cls_obj)
+        trackedTypes.add(cls_obj)
         setattr(sys.modules['pyrol.pyrol.ROL'], cls_name, cls_obj)
     ROL_members[cls_name] = (cls_obj, inspect.isclass(cls_obj))
 
