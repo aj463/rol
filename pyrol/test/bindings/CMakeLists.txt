@@ -1,4 +1,10 @@
 INCLUDE(PythonTest)
 
+PYTHON_ADD_TEST(test_checks)
+PYTHON_ADD_TEST(test_exports)
+PYTHON_ADD_TEST(test_lifetime)
+PYTHON_ADD_TEST(test_numpy_vector)
 PYTHON_ADD_TEST(test_parameterList)
+PYTHON_ADD_TEST(test_problem)
+PYTHON_ADD_TEST(test_simopt)
 PYTHON_ADD_TEST(test_vector)
